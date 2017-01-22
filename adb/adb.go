@@ -56,6 +56,57 @@ func (c *Client) DeviceInfo() (*Device, error) {
 	return newDeviceFromOutput(response, lineSeparator), nil
 }
 
+func (c *Client) Push(from, to string) (error) {
+	_, err := c.executeCommand(
+		"push", from, to,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) Install(from, to string) (error) {
+	err := c.Push(from, to)
+	if err != nil {
+		return err
+	}
+
+	response, err := c.executeShellCommand(
+		"pm", "install", "-r", to,
+	)
+	if err != nil {
+		return err
+	}
+
+	if !strings.HasSuffix(strings.TrimSpace(response), "Success") {
+		return errors.New(
+			fmt.Sprintf(
+				"Application installign failure with output: %s",
+				response,
+			),
+		)
+	}
+
+	return nil
+}
+
+// TODO: Parsing response log
+// TODO: Parsing error by check containing "INSTRUMENTATION_STATUS: Error"
+func (c *Client) RunInstrumentation(from, runner string) (error) {
+	response, err := c.executeShellCommand(
+		"am", "instrument", "-w", "-r", fmt.Sprintf("%s/%s", from, runner),
+	)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(response)
+
+	return nil
+}
+
 func (c *Client) executeShellCommand(arguments ...string) (string, error) {
 	return c.executeCommand(
 		append([]string{"shell"}, arguments...)...,

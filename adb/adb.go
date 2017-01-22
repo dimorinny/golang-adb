@@ -38,7 +38,6 @@ func (c *Client) Connect() error {
 		"connected to",
 		"already connected",
 	}
-
 	for _, prefix := range successPrefixes {
 		if strings.Contains(response, prefix) {
 			return nil

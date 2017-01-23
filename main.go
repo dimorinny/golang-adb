@@ -1,15 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"github.com/dimorinny/adbaster/adb"
 	"github.com/labstack/gommon/log"
-	"fmt"
 )
 
 func main() {
 	config := adb.NewConfig(
 		"192.168.99.100",
-		32800,
+		32814,
 		"adb",
 	)
 	client := adb.NewClient(config)
@@ -48,13 +48,17 @@ func main() {
 
 	fmt.Println("Run instrumentation tests...")
 
-	err = client.RunInstrumentation(
-		"com.avito.services.debug.test",
-		"ru.avito.services.ServicesTestRunner",
+	result, err := client.RunInstrumentationTests(
+		adb.InstrumentationParams{
+			From:      "com.avito.services.debug.test",
+			Runner:    "ru.avito.services.ServicesTestRunner",
+			TestClass: "ru.avito.services.test.blacklist.BlacklistTest",
+		},
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	fmt.Println(result)
 	fmt.Println(info)
 }

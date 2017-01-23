@@ -2,7 +2,19 @@ package adb
 
 import (
 	"github.com/dimorinny/adbaster/util"
+	"regexp"
+	"strconv"
 	"strings"
+)
+
+const (
+	instrumentalOk   = "OK"
+	instrumentalFail = "FAIL"
+)
+
+var (
+	okMatcher      = regexp.MustCompile(`OK \((\d+) tests\)`)
+	failureMatcher = regexp.MustCompile(`Tests run: (\d+),  Failures: (\d+)`)
 )
 
 type (
@@ -12,6 +24,18 @@ type (
 		HeapSize     string
 		Sdk          int
 		BatteryLevel int
+	}
+
+	InstrumentationParams struct {
+		From, Runner, TestClass string
+	}
+
+	InstrumentationResult struct {
+		Status  string
+		Running int
+		Passed  int
+		Failure int
+		Output  string
 	}
 )
 
@@ -33,4 +57,29 @@ func newDeviceFromOutput(output, lineSeparator string) *Device {
 		Sdk:          util.GetIntWithDefault(items, "ro.build.version.sdk", -1),
 		BatteryLevel: util.GetIntWithDefault(items, "status.battery.level_raw", -1),
 	}
+}
+
+func newInstrumentationResultFromOutput(output string) *InstrumentationResult {
+	result := InstrumentationResult{}
+
+	if okMatcher.MatchString(output) {
+
+		testsPassed, _ := strconv.Atoi(okMatcher.FindStringSubmatch(output)[1])
+		result.Status = instrumentalOk
+		result.Failure = 0
+		result.Passed = testsPassed
+		result.Running = testsPassed
+	} else if failureMatcher.MatchString(output) {
+
+		matcherValue := failureMatcher.FindStringSubmatch(output)[1:]
+		testsRunning, _ := strconv.Atoi(matcherValue[0])
+		testsFailed, _ := strconv.Atoi(matcherValue[1])
+		result.Status = instrumentalFail
+		result.Failure = testsFailed
+		result.Passed = testsRunning - testsFailed
+		result.Running = testsRunning
+	}
+
+	result.Output = output
+	return &result
 }

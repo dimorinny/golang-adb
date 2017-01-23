@@ -56,7 +56,7 @@ func (c *Client) DeviceInfo() (*Device, error) {
 	return newDeviceFromOutput(response, lineSeparator), nil
 }
 
-func (c *Client) Push(from, to string) (error) {
+func (c *Client) Push(from, to string) error {
 	_, err := c.executeCommand(
 		"push", from, to,
 	)
@@ -67,7 +67,7 @@ func (c *Client) Push(from, to string) (error) {
 	return nil
 }
 
-func (c *Client) Install(from, to string) (error) {
+func (c *Client) Install(from, to string) error {
 	err := c.Push(from, to)
 	if err != nil {
 		return err
@@ -92,19 +92,53 @@ func (c *Client) Install(from, to string) (error) {
 	return nil
 }
 
-// TODO: Parsing response log
-// TODO: Parsing error by check containing "INSTRUMENTATION_STATUS: Error"
-func (c *Client) RunInstrumentation(from, runner string) (error) {
-	response, err := c.executeShellCommand(
-		"am", "instrument", "-w", "-r", fmt.Sprintf("%s/%s", from, runner),
-	)
-	if err != nil {
-		return err
+func (c *Client) RunInstrumentationTests(params InstrumentationParams) (*InstrumentationResult, error) {
+	if params.From == "" || params.Runner == "" {
+		return nil, errors.New(
+			"From and Runner params is required in RunInstrumentationTests method",
+		)
 	}
 
-	fmt.Println(response)
+	arguments := []string{}
+	arguments = append(
+		arguments,
+		"am",
+		"instrument",
+		"-w",
+		"-r",
+	)
+	if params.TestClass != "" {
+		arguments = append(
+			arguments,
+			"-e",
+			"class",
+			params.TestClass,
+		)
+	}
+	arguments = append(
+		arguments,
+		fmt.Sprintf(
+			"%s/%s",
+			params.From,
+			params.Runner,
+		),
+	)
 
-	return nil
+	response, err := c.executeShellCommand(arguments...)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.Contains(response, "INSTRUMENTATION_STATUS: Error") {
+		return nil, errors.New(
+			fmt.Sprintf(
+				"Error while starting instrumental tests with output: %s",
+				response,
+			),
+		)
+	}
+
+	return newInstrumentationResultFromOutput(response), nil
 }
 
 func (c *Client) executeShellCommand(arguments ...string) (string, error) {

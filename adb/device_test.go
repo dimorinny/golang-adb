@@ -3,6 +3,7 @@ package adb
 import (
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"github.com/dimorinny/adbaster/model"
 )
 
 const (
@@ -46,7 +47,7 @@ func TestDeviceInfoParsed(t *testing.T) {
 	assert.Equal(
 		t,
 		device,
-		&Device{
+		&model.Device{
 			Arch:         "x86",
 			Timezone:     "America/New_York",
 			Sdk:          19,
@@ -62,7 +63,7 @@ func TestDeviceFieldEmptyIfItNotExists(t *testing.T) {
 	assert.Equal(
 		t,
 		deviceWithoutSdk,
-		&Device{
+		&model.Device{
 			Arch:         "x86",
 			Timezone:     "America/New_York",
 			Sdk:          -1,
@@ -78,7 +79,7 @@ func TestDeviceEmptyIfResponseIsEmpty(t *testing.T) {
 	assert.Equal(
 		t,
 		deviceWithoutSdk,
-		&Device{
+		&model.Device{
 			Arch:         "",
 			Timezone:     "",
 			HeapSize:     "",

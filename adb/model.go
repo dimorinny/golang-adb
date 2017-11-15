@@ -1,6 +1,7 @@
 package adb
 
 import (
+	"github.com/dimorinny/adbaster/model"
 	"github.com/dimorinny/adbaster/util"
 	"regexp"
 	"strconv"
@@ -17,29 +18,25 @@ var (
 	failureMatcher = regexp.MustCompile(`Tests run: (\d+),  Failures: (\d+)`)
 )
 
-type (
-	Device struct {
-		Arch         string
-		Timezone     string
-		HeapSize     string
-		Sdk          int
-		BatteryLevel int
+func newDevicesIdentifiersFromOutput(output, lineSeparator string) []model.DeviceIdentifier {
+	identifiers := []model.DeviceIdentifier{}
+
+	for _, item := range strings.Split(output, lineSeparator) {
+		trimmedItem := strings.TrimSpace(item)
+
+		if strings.Contains(trimmedItem, "device") || strings.Contains(trimmedItem, "online") {
+			device := strings.Split(item, "\t")
+
+			if len(device) == 2 {
+				identifiers = append(identifiers, model.DeviceIdentifier(device[0]))
+			}
+		}
 	}
 
-	InstrumentationParams struct {
-		From, Runner, TestClass string
-	}
+	return identifiers
+}
 
-	InstrumentationResult struct {
-		Status  string
-		Running int
-		Passed  int
-		Failure int
-		Output  string
-	}
-)
-
-func newDeviceFromOutput(output, lineSeparator string) *Device {
+func newDeviceFromOutput(output, lineSeparator string) *model.Device {
 	items := map[string]interface{}{}
 
 	for _, item := range strings.Split(output, lineSeparator) {
@@ -50,7 +47,7 @@ func newDeviceFromOutput(output, lineSeparator string) *Device {
 			items[key] = value
 		}
 	}
-	return &Device{
+	return &model.Device{
 		Arch:         util.GetStringWithDefault(items, "ro.product.cpu.abi", ""),
 		Timezone:     util.GetStringWithDefault(items, "persist.sys.timezone", ""),
 		HeapSize:     util.GetStringWithDefault(items, "dalvik.vm.heapsize", ""),
@@ -59,8 +56,8 @@ func newDeviceFromOutput(output, lineSeparator string) *Device {
 	}
 }
 
-func newInstrumentationResultFromOutput(output string) *InstrumentationResult {
-	result := InstrumentationResult{}
+func newInstrumentationResultFromOutput(output string) *model.InstrumentationResult {
+	result := model.InstrumentationResult{}
 
 	if okMatcher.MatchString(output) {
 

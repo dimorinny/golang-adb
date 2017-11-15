@@ -3,12 +3,13 @@ package adb
 import (
 	"errors"
 	"fmt"
+	"github.com/dimorinny/adbaster/model"
 	"os/exec"
 	"strings"
 )
 
 const (
-	lineSeparator = "\r\n"
+	lineSeparator = "\n"
 )
 
 type Client struct {
@@ -21,34 +22,22 @@ func NewClient(config Config) Client {
 	}
 }
 
-func (c *Client) Connect() error {
+func (c *Client) Devices() ([]model.DeviceIdentifier, error) {
 	response, err := c.executeCommand(
-		"connect",
-		fmt.Sprintf(
-			"%s:%d",
-			c.Config.Host,
-			c.Config.Port,
-		),
+		"devices",
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	successPrefixes := []string{
-		"connected to",
-		"already connected",
-	}
-	for _, prefix := range successPrefixes {
-		if strings.Contains(response, prefix) {
-			return nil
-		}
-	}
-
-	return errors.New("Error connecting to adb server. " + response)
+	return newDevicesIdentifiersFromOutput(response, lineSeparator), nil
 }
 
-func (c *Client) DeviceInfo() (*Device, error) {
-	response, err := c.executeShellCommand("getprop")
+func (c *Client) DeviceInfo(device model.DeviceIdentifier) (*model.Device, error) {
+	response, err := c.executeShellCommand(
+		device,
+		"getprop",
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -56,9 +45,12 @@ func (c *Client) DeviceInfo() (*Device, error) {
 	return newDeviceFromOutput(response, lineSeparator), nil
 }
 
-func (c *Client) Push(from, to string) error {
-	_, err := c.executeCommand(
-		"push", from, to,
+func (c *Client) Push(device model.DeviceIdentifier, from, to string) error {
+	_, err := c.executeDeviceCommand(
+		device,
+		"push",
+		from,
+		to,
 	)
 	if err != nil {
 		return err
@@ -67,14 +59,18 @@ func (c *Client) Push(from, to string) error {
 	return nil
 }
 
-func (c *Client) Install(from, to string) error {
-	err := c.Push(from, to)
+func (c *Client) Install(device model.DeviceIdentifier, from, to string) error {
+	err := c.Push(device, from, to)
 	if err != nil {
 		return err
 	}
 
 	response, err := c.executeShellCommand(
-		"pm", "install", "-r", to,
+		device,
+		"pm",
+		"install",
+		"-r",
+		to,
 	)
 	if err != nil {
 		return err
@@ -83,7 +79,7 @@ func (c *Client) Install(from, to string) error {
 	if !strings.HasSuffix(strings.TrimSpace(response), "Success") {
 		return errors.New(
 			fmt.Sprintf(
-				"Application installign failure with output: %s",
+				"application installign failure with output: %s",
 				response,
 			),
 		)
@@ -92,10 +88,13 @@ func (c *Client) Install(from, to string) error {
 	return nil
 }
 
-func (c *Client) RunInstrumentationTests(params InstrumentationParams) (*InstrumentationResult, error) {
+func (c *Client) RunInstrumentationTests(
+	device model.DeviceIdentifier,
+	params model.InstrumentationParams,
+) (*model.InstrumentationResult, error) {
 	if params.From == "" || params.Runner == "" {
 		return nil, errors.New(
-			"From and Runner params is required in RunInstrumentationTests method",
+			"from and Runner params is required in RunInstrumentationTests method",
 		)
 	}
 
@@ -124,7 +123,7 @@ func (c *Client) RunInstrumentationTests(params InstrumentationParams) (*Instrum
 		),
 	)
 
-	response, err := c.executeShellCommand(arguments...)
+	response, err := c.executeShellCommand(device, arguments...)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +131,7 @@ func (c *Client) RunInstrumentationTests(params InstrumentationParams) (*Instrum
 	if strings.Contains(response, "INSTRUMENTATION_STATUS: Error") {
 		return nil, errors.New(
 			fmt.Sprintf(
-				"Error while starting instrumental tests with output: %s",
+				"error while starting instrumental tests with output: %s",
 				response,
 			),
 		)
@@ -141,9 +140,22 @@ func (c *Client) RunInstrumentationTests(params InstrumentationParams) (*Instrum
 	return newInstrumentationResultFromOutput(response), nil
 }
 
-func (c *Client) executeShellCommand(arguments ...string) (string, error) {
+func (c *Client) executeShellCommand(device model.DeviceIdentifier, arguments ...string) (string, error) {
+	return c.executeDeviceCommand(
+		device,
+		append(
+			[]string{"shell"},
+			arguments...,
+		)...,
+	)
+}
+
+func (c *Client) executeDeviceCommand(device model.DeviceIdentifier, arguments ...string) (string, error) {
 	return c.executeCommand(
-		append([]string{"shell"}, arguments...)...,
+		append(
+			[]string{"-s", string(device)},
+			arguments...,
+		)...,
 	)
 }
 
@@ -156,8 +168,9 @@ func (c *Client) executeCommand(arguments ...string) (string, error) {
 	if err != nil {
 		return "", errors.New(
 			fmt.Sprintf(
-				"Some error while executing: %v.",
+				"some error while executing: %v. output: %s",
 				arguments,
+				err,
 			),
 		)
 	}

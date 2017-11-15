@@ -1,13 +1,13 @@
 package adb
 
 import (
+	"github.com/dimorinny/adbaster/model"
 	"github.com/stretchr/testify/assert"
 	"testing"
-	"github.com/dimorinny/adbaster/model"
 )
 
 const (
-	testLineSeparator = "\n"
+	deviceInfoTestLineSeparator = "\n"
 
 	successDevice = `[ARGH]: [ARGH]
 [dalvik.vm.heapsize]: [48m]
@@ -42,7 +42,7 @@ const (
 )
 
 func TestDeviceInfoParsed(t *testing.T) {
-	device := newDeviceFromOutput(successDevice, testLineSeparator)
+	device := newDeviceFromOutput(successDevice, deviceInfoTestLineSeparator)
 
 	assert.Equal(
 		t,
@@ -58,7 +58,7 @@ func TestDeviceInfoParsed(t *testing.T) {
 }
 
 func TestDeviceFieldEmptyIfItNotExists(t *testing.T) {
-	deviceWithoutSdk := newDeviceFromOutput(successDeviceWithoutSdk, testLineSeparator)
+	deviceWithoutSdk := newDeviceFromOutput(successDeviceWithoutSdk, deviceInfoTestLineSeparator)
 
 	assert.Equal(
 		t,
@@ -74,7 +74,7 @@ func TestDeviceFieldEmptyIfItNotExists(t *testing.T) {
 }
 
 func TestDeviceEmptyIfResponseIsEmpty(t *testing.T) {
-	deviceWithoutSdk := newDeviceFromOutput("", testLineSeparator)
+	deviceWithoutSdk := newDeviceFromOutput("", deviceInfoTestLineSeparator)
 
 	assert.Equal(
 		t,

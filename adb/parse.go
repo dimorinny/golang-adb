@@ -3,19 +3,7 @@ package adb
 import (
 	"github.com/dimorinny/adbaster/model"
 	"github.com/dimorinny/adbaster/util"
-	"regexp"
-	"strconv"
 	"strings"
-)
-
-const (
-	instrumentalOk   = "OK"
-	instrumentalFail = "FAIL"
-)
-
-var (
-	okMatcher      = regexp.MustCompile(`OK \((\d+) tests\)`)
-	failureMatcher = regexp.MustCompile(`Tests run: (\d+),  Failures: (\d+)`)
 )
 
 func newDevicesIdentifiersFromOutput(output, lineSeparator string) []model.DeviceIdentifier {
@@ -58,25 +46,5 @@ func newDeviceFromOutput(output, lineSeparator string) *model.Device {
 
 func newInstrumentationResultFromOutput(output string) *model.InstrumentationResult {
 	result := model.InstrumentationResult{}
-
-	if okMatcher.MatchString(output) {
-
-		testsPassed, _ := strconv.Atoi(okMatcher.FindStringSubmatch(output)[1])
-		result.Status = instrumentalOk
-		result.Failure = 0
-		result.Passed = testsPassed
-		result.Running = testsPassed
-	} else if failureMatcher.MatchString(output) {
-
-		matcherValue := failureMatcher.FindStringSubmatch(output)[1:]
-		testsRunning, _ := strconv.Atoi(matcherValue[0])
-		testsFailed, _ := strconv.Atoi(matcherValue[1])
-		result.Status = instrumentalFail
-		result.Failure = testsFailed
-		result.Passed = testsRunning - testsFailed
-		result.Running = testsRunning
-	}
-
-	result.Output = output
 	return &result
 }

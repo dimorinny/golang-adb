@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dimorinny/adbaster/model"
+	"os"
 	"os/exec"
+	"path"
 	"strings"
 )
 
@@ -13,12 +15,14 @@ const (
 )
 
 type Client struct {
-	Config Config
+	Config         Config
+	PrintResponses bool
 }
 
-func NewClient(config Config) Client {
+func NewClient(config Config, printResponses bool) Client {
 	return Client{
-		Config: config,
+		Config:         config,
+		PrintResponses: printResponses,
 	}
 }
 
@@ -26,6 +30,7 @@ func (c *Client) Devices() ([]model.DeviceIdentifier, error) {
 	response, err := c.executeCommand(
 		"devices",
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -59,11 +64,20 @@ func (c *Client) Push(device model.DeviceIdentifier, from, to string) error {
 	return nil
 }
 
-func (c *Client) Install(device model.DeviceIdentifier, from, to string) error {
+func (c *Client) Install(device model.DeviceIdentifier, from string) error {
+	if _, err := os.Stat(from); os.IsNotExist(err) {
+		return err
+	}
+
+	to := fmt.Sprintf("/data/local/tmp/%s", path.Base(from))
 	err := c.Push(device, from, to)
 	if err != nil {
 		return err
 	}
+
+	defer func() {
+		c.executeShellCommand(device, "rm", to)
+	}()
 
 	response, err := c.executeShellCommand(
 		device,
@@ -72,6 +86,7 @@ func (c *Client) Install(device model.DeviceIdentifier, from, to string) error {
 		"-r",
 		to,
 	)
+
 	if err != nil {
 		return err
 	}
@@ -140,6 +155,11 @@ func (c *Client) RunInstrumentationTests(
 	return newInstrumentationResultFromOutput(response), nil
 }
 
+func (c *Client) printResponseForCommand(command, response string) {
+	fmt.Println(fmt.Sprintf("Output for command - %s:", command))
+	fmt.Println(response)
+}
+
 func (c *Client) executeShellCommand(device model.DeviceIdentifier, arguments ...string) (string, error) {
 	return c.executeDeviceCommand(
 		device,
@@ -164,6 +184,13 @@ func (c *Client) executeCommand(arguments ...string) (string, error) {
 		c.Config.AdbPath,
 		arguments...,
 	).Output()
+
+	if c.PrintResponses {
+		c.printResponseForCommand(
+			strings.Join(arguments, " "),
+			string(output),
+		)
+	}
 
 	if err != nil {
 		return "", errors.New(

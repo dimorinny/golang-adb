@@ -8,7 +8,7 @@ import (
 
 func TestMain1(t *testing.T) {
 	config := adb.NewConfig("adb")
-	client := adb.NewClient(config)
+	client := adb.NewClient(config, true)
 
 	identifiers, err := client.Devices()
 
@@ -16,5 +16,10 @@ func TestMain1(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	t.Logf("\n\n %s \n\n", identifiers)
+	first := identifiers[0]
+
+	err = client.Install(first, "avito-test.apk")
+	if err != nil {
+		log.Fatal(err)
+	}
 }

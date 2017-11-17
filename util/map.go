@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"strconv"
 )
 
@@ -22,4 +23,21 @@ func GetIntWithDefault(data map[string]interface{}, key string, defaultValue int
 		}
 	}
 	return defaultValue
+}
+
+func Join(format string, data map[string]string) []string {
+	result := []string{}
+
+	for key, value := range data {
+		result = append(
+			result,
+			fmt.Sprintf(
+				format,
+				key,
+				value,
+			),
+		)
+	}
+
+	return result
 }

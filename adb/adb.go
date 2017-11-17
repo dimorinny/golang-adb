@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dimorinny/adbaster/model"
+	"github.com/dimorinny/adbaster/util"
 	"os"
 	"os/exec"
 	"path"
@@ -64,6 +65,20 @@ func (c *Client) Push(device model.DeviceIdentifier, from, to string) error {
 	return nil
 }
 
+func (c *Client) Pull(device model.DeviceIdentifier, from, to string) error {
+	_, err := c.executeDeviceCommand(
+		device,
+		"pull",
+		from,
+		to,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Client) Install(device model.DeviceIdentifier, from string) error {
 	if _, err := os.Stat(from); os.IsNotExist(err) {
 		return err
@@ -107,9 +122,9 @@ func (c *Client) RunInstrumentationTests(
 	device model.DeviceIdentifier,
 	params model.InstrumentationParams,
 ) (*model.InstrumentationResult, error) {
-	if params.From == "" || params.Runner == "" {
+	if params.Package == "" || params.Runner == "" {
 		return nil, errors.New(
-			"from and Runner params is required in RunInstrumentationTests method",
+			"package and runner params is required in RunInstrumentationTests method",
 		)
 	}
 
@@ -121,19 +136,24 @@ func (c *Client) RunInstrumentationTests(
 		"-w",
 		"-r",
 	)
-	if params.TestClass != "" {
+
+	instrumentationArguments := util.Join(
+		"-e %s %s",
+		params.Arguments,
+	)
+
+	if len(instrumentationArguments) > 0 {
 		arguments = append(
 			arguments,
-			"-e",
-			"class",
-			params.TestClass,
+			instrumentationArguments...,
 		)
 	}
+
 	arguments = append(
 		arguments,
 		fmt.Sprintf(
 			"%s/%s",
-			params.From,
+			params.Package,
 			params.Runner,
 		),
 	)

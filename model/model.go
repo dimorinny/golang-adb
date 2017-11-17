@@ -11,9 +11,14 @@ type (
 		Sdk          int
 		BatteryLevel int
 	}
+)
+
+type (
+	InstrumentationArguments map[string]string
 
 	InstrumentationParams struct {
-		From, Runner, TestClass string
+		Package, Runner string
+		Arguments       InstrumentationArguments
 	}
 
 	InstrumentationResult struct {

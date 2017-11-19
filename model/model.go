@@ -17,8 +17,8 @@ type (
 	InstrumentationArguments map[string]string
 
 	InstrumentationParams struct {
-		Package, Runner string
-		Arguments       InstrumentationArguments
+		TestPackage, Runner string
+		Arguments           InstrumentationArguments
 	}
 
 	InstrumentationResult struct {

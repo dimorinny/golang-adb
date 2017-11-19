@@ -20,8 +20,8 @@ type Client struct {
 	PrintResponses bool
 }
 
-func NewClient(config Config, printResponses bool) Client {
-	return Client{
+func NewClient(config Config, printResponses bool) *Client {
+	return &Client{
 		Config:         config,
 		PrintResponses: printResponses,
 	}
@@ -122,9 +122,9 @@ func (c *Client) RunInstrumentationTests(
 	device model.DeviceIdentifier,
 	params model.InstrumentationParams,
 ) (*model.InstrumentationResult, error) {
-	if params.Package == "" || params.Runner == "" {
+	if params.TestPackage == "" || params.Runner == "" {
 		return nil, errors.New(
-			"package and runner params is required in RunInstrumentationTests method",
+			"test package and runner params is required in RunInstrumentationTests method",
 		)
 	}
 
@@ -153,7 +153,7 @@ func (c *Client) RunInstrumentationTests(
 		arguments,
 		fmt.Sprintf(
 			"%s/%s",
-			params.Package,
+			params.TestPackage,
 			params.Runner,
 		),
 	)

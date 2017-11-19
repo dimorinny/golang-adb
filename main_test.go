@@ -8,31 +8,53 @@ import (
 )
 
 func TestMain1(t *testing.T) {
-	config := adb.NewConfig("adb")
-	client := adb.NewClient(config, true)
+	client := createClient()
+	device := getFirstConnectedDevice(client)
 
-	identifiers, err := client.Devices()
+	installApplications(client, device, "avito.apk", "avito-test.apk")
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	runTests(client, device)
+}
 
-	first := identifiers[0]
-
-	err = client.Install(first, "avito-test.apk")
-	if err != nil {
-		log.Fatal(err)
-	}
-
+func runTests(client Client, device model.DeviceIdentifier) {
 	client.RunInstrumentationTests(
-		first,
+		device,
 		model.InstrumentationParams{
-			Package: "com.lol",
-			Runner:  "test",
+			TestPackage: "com.avito.android.dev.test",
+			Runner:      "com.avito.android.runner.AvitoInstrumentTestRunner",
 			Arguments: model.InstrumentationArguments{
-				"test":  "test2",
-				"test2": "test3",
+				"testType":                            "FIREBASE",
+				"fileStorageHost":                     "erc20.xyz",
+				"fileStorageAccessKey":                "access",
+				"fileStorageSecretKey":                "secret",
+				"componentTestFlakyFilterIterations":  "2",
+				"componentTestTakeScreenshots":        "false",
+				"allureReportForInstrumentationTests": "false",
+				"componentTestFlakyDebug":             "false",
 			},
 		},
 	)
+}
+
+func createClient() Client {
+	config := adb.NewConfig("adb")
+	return adb.NewClient(config, true)
+}
+
+func getFirstConnectedDevice(client Client) model.DeviceIdentifier {
+	identifiers, err := client.Devices()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return identifiers[0]
+}
+
+func installApplications(client Client, device model.DeviceIdentifier, applications ...string) {
+	for _, application := range applications {
+		err := client.Install(device, application)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 }

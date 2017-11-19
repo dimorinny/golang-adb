@@ -31,6 +31,7 @@ func runTests(client Client, device model.DeviceIdentifier) {
 				"componentTestTakeScreenshots":        "false",
 				"allureReportForInstrumentationTests": "false",
 				"componentTestFlakyDebug":             "false",
+				"class":                               "com.avito.android.module.edit_profile.AvatarEditProfileTest",
 			},
 		},
 	)

@@ -121,7 +121,7 @@ func (c *Client) Install(device model.DeviceIdentifier, from string) error {
 func (c *Client) RunInstrumentationTests(
 	device model.DeviceIdentifier,
 	params model.InstrumentationParams,
-) (<- chan string, error) {
+) (<-chan string, error) {
 	if params.TestPackage == "" || params.Runner == "" {
 		return nil, errors.New(
 			"test package and runner params is required in RunInstrumentationTests method",
@@ -213,7 +213,7 @@ func (c *Client) executeCommand(arguments ...string) (string, error) {
 }
 
 // shell stream command utils
-func (c *Client) executeShellStreamCommand(device model.DeviceIdentifier, arguments ...string) (<- chan string, error) {
+func (c *Client) executeShellStreamCommand(device model.DeviceIdentifier, arguments ...string) (<-chan string, error) {
 	return c.executeDeviceStreamCommand(
 		device,
 		append(
@@ -223,7 +223,7 @@ func (c *Client) executeShellStreamCommand(device model.DeviceIdentifier, argume
 	)
 }
 
-func (c *Client) executeDeviceStreamCommand(device model.DeviceIdentifier, arguments ...string) (<- chan string, error) {
+func (c *Client) executeDeviceStreamCommand(device model.DeviceIdentifier, arguments ...string) (<-chan string, error) {
 	return c.executeStreamCommand(
 		append(
 			[]string{"-s", string(device)},
@@ -232,7 +232,7 @@ func (c *Client) executeDeviceStreamCommand(device model.DeviceIdentifier, argum
 	)
 }
 
-func (c *Client) executeStreamCommand(arguments ...string) (<- chan string, error) {
+func (c *Client) executeStreamCommand(arguments ...string) (<-chan string, error) {
 	return util.ExecCommandWithStreamOutput(
 		c.Config.AdbPath,
 		arguments...,

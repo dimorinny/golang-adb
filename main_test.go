@@ -1,11 +1,11 @@
 package adbaster
 
 import (
+	"fmt"
 	"github.com/dimorinny/adbaster/adb"
 	"github.com/dimorinny/adbaster/model"
 	"log"
 	"testing"
-	"fmt"
 )
 
 func TestMain1(t *testing.T) {

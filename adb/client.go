@@ -121,7 +121,7 @@ func (c *Client) Install(device model.DeviceIdentifier, from string) error {
 func (c *Client) RunInstrumentationTests(
 	device model.DeviceIdentifier,
 	params model.InstrumentationParams,
-) (*model.InstrumentationResult, error) {
+) (<- chan string, error) {
 	if params.TestPackage == "" || params.Runner == "" {
 		return nil, errors.New(
 			"test package and runner params is required in RunInstrumentationTests method",
@@ -158,21 +158,7 @@ func (c *Client) RunInstrumentationTests(
 		),
 	)
 
-	response, err := c.executeShellCommand(device, arguments...)
-	if err != nil {
-		return nil, err
-	}
-
-	if strings.Contains(response, "INSTRUMENTATION_STATUS: Error") {
-		return nil, errors.New(
-			fmt.Sprintf(
-				"error while starting instrumental tests with output: %s",
-				response,
-			),
-		)
-	}
-
-	return newInstrumentationResultFromOutput(response), nil
+	return c.executeShellStreamCommand(device, arguments...)
 }
 
 func (c *Client) printResponseForCommand(command, response string) {
@@ -180,6 +166,7 @@ func (c *Client) printResponseForCommand(command, response string) {
 	fmt.Println(response)
 }
 
+// shell command utils
 func (c *Client) executeShellCommand(device model.DeviceIdentifier, arguments ...string) (string, error) {
 	return c.executeDeviceCommand(
 		device,
@@ -223,4 +210,31 @@ func (c *Client) executeCommand(arguments ...string) (string, error) {
 	}
 
 	return string(output), nil
+}
+
+// shell stream command utils
+func (c *Client) executeShellStreamCommand(device model.DeviceIdentifier, arguments ...string) (<- chan string, error) {
+	return c.executeDeviceStreamCommand(
+		device,
+		append(
+			[]string{"shell"},
+			arguments...,
+		)...,
+	)
+}
+
+func (c *Client) executeDeviceStreamCommand(device model.DeviceIdentifier, arguments ...string) (<- chan string, error) {
+	return c.executeStreamCommand(
+		append(
+			[]string{"-s", string(device)},
+			arguments...,
+		)...,
+	)
+}
+
+func (c *Client) executeStreamCommand(arguments ...string) (<- chan string, error) {
+	return util.ExecCommandWithStreamOutput(
+		c.Config.AdbPath,
+		arguments...,
+	)
 }

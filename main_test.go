@@ -1,11 +1,12 @@
 package adbaster
 
 import (
-	"fmt"
-	"github.com/dimorinny/adbaster/adb"
-	"github.com/dimorinny/adbaster/model"
 	"log"
 	"testing"
+	"time"
+
+	"github.com/dimorinny/adbaster/adb"
+	"github.com/dimorinny/adbaster/model"
 )
 
 func TestMain1(t *testing.T) {
@@ -18,7 +19,7 @@ func TestMain1(t *testing.T) {
 }
 
 func runTests(client Client, device model.DeviceIdentifier) {
-	result, err := client.RunInstrumentationTests(
+	_, err := client.RunInstrumentationTests(
 		device,
 		model.InstrumentationParams{
 			TestPackage: "com.avito.android.dev.test",
@@ -36,15 +37,11 @@ func runTests(client Client, device model.DeviceIdentifier) {
 			},
 		},
 	)
-
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for message := range result {
-		fmt.Println(message)
-		fmt.Println("========")
-	}
+	time.Sleep(30 * time.Second)
 }
 
 func createClient() Client {

@@ -3,12 +3,14 @@ package adb
 import (
 	"errors"
 	"fmt"
-	"github.com/dimorinny/adbaster/model"
-	"github.com/dimorinny/adbaster/util"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
+
+	"github.com/dimorinny/adbaster/adb/instrumentation"
+	"github.com/dimorinny/adbaster/model"
+	"github.com/dimorinny/adbaster/util"
 )
 
 const (
@@ -18,12 +20,16 @@ const (
 type Client struct {
 	Config         Config
 	PrintResponses bool
+
+	instrumentationParser *instrumentation.Parser
 }
 
 func NewClient(config Config, printResponses bool) *Client {
 	return &Client{
 		Config:         config,
 		PrintResponses: printResponses,
+
+		instrumentationParser: instrumentation.NewParser(lineSeparator),
 	}
 }
 
@@ -158,7 +164,14 @@ func (c *Client) RunInstrumentationTests(
 		),
 	)
 
-	return c.executeShellStreamCommand(device, arguments...)
+	output, err := c.executeShellStreamCommand(device, arguments...)
+	if err != nil {
+		return nil, err
+	}
+
+	c.instrumentationParser.Process(output)
+
+	return nil, nil
 }
 
 func (c *Client) printResponseForCommand(command, response string) {

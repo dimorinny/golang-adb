@@ -18,6 +18,8 @@ type Parser struct {
 	currentKey   string
 	currentValue bytes.Buffer
 
+	// true if start of test has already been reported to listener
+	testStartReported bool
 	// true if the parser is parsing a line beginning with "INSTRUMENTATION_RESULT"
 	inInstrumentationResultKey bool
 	// true if the completion of the test run has been detected
@@ -37,14 +39,19 @@ type Parser struct {
 
 func NewParser(lineSeparator string) *Parser {
 	return &Parser{
-		lineSeparator:              lineSeparator,
+		lineSeparator: lineSeparator,
+
+		testStartReported:          false,
 		inInstrumentationResultKey: false,
 		testRunFinished:            false,
-		currentTestResult:          nil,
-		lastTestResult:             nil,
-		numTestsRun:                0,
-		testsExpected:              0,
-		result:                     make(chan TestResult),
+
+		currentTestResult: nil,
+		lastTestResult:    nil,
+
+		numTestsRun:   0,
+		testsExpected: 0,
+
+		result: make(chan TestResult),
 	}
 }
 
@@ -52,6 +59,8 @@ func NewParser(lineSeparator string) *Parser {
 func (p *Parser) Process(output <-chan string) <-chan TestResult {
 	go func() {
 		for line := range output {
+			fmt.Println("Start processing line:")
+			fmt.Println(line)
 			p.processLine(line)
 		}
 
@@ -70,44 +79,24 @@ func (p *Parser) Process(output <-chan string) <-chan TestResult {
 // a continuation of the previous status (the "value" portion of the key has wrapped
 // to the next line).
 func (p *Parser) processLine(line string) {
-	//if (line.startsWith(Prefixes.STATUS_CODE)) {
-	//	// Previous status key-value has been collected. Store it.
-	//	submitCurrentKeyValue();
-	//	mInInstrumentationResultKey = false;
-	//	parseStatusCode(line);
-	//} else if (line.startsWith(Prefixes.STATUS)) {
-	//	// Previous status key-value has been collected. Store it.
-	//	submitCurrentKeyValue();
-	//	mInInstrumentationResultKey = false;
-	//	parseKey(line, Prefixes.STATUS.length());
-	//} else if (line.startsWith(Prefixes.RESULT)) {
-	//	// Previous status key-value has been collected. Store it.
-	//	submitCurrentKeyValue();
-	//	mInInstrumentationResultKey = true;
-	//	parseKey(line, Prefixes.RESULT.length());
-	//} else if (line.startsWith(Prefixes.STATUS_FAILED) ||
-	//	line.startsWith(Prefixes.CODE)) {
-	//	// Previous status key-value has been collected. Store it.
-	//	submitCurrentKeyValue();
-	//	mInInstrumentationResultKey = false;
-	//	// these codes signal the end of the instrumentation run
-	//	mTestRunFinished = true;
-	//	// just ignore the remaining data on this line
-	//} else if (line.startsWith(Prefixes.TIME_REPORT)) {
-	//	parseTime(line);
-
 	if strings.HasPrefix(line, prefixStatusCode) {
 		p.submitCurrentKeyValue()
 		p.inInstrumentationResultKey = false
 		p.parseStatusCode(line)
 	} else if strings.HasPrefix(line, prefixStatus) {
-
+		p.submitCurrentKeyValue()
+		p.inInstrumentationResultKey = false
+		p.parseKey(line, len(prefixStatus))
 	} else if strings.HasPrefix(line, prefixResult) {
-
-	} else if strings.HasPrefix(line, prefixStatusFailed) {
-
+		p.submitCurrentKeyValue()
+		p.inInstrumentationResultKey = true
+		p.parseKey(line, len(prefixResult))
+	} else if strings.HasPrefix(line, prefixStatusFailed) || strings.HasPrefix(line, prefixCode) {
+		p.submitCurrentKeyValue()
+		p.inInstrumentationResultKey = false
+		//	mTestRunFinished = true;
 	} else if strings.HasPrefix(line, prefixTimeReport) {
-
+		// TODO: parse time
 	} else {
 		if p.currentValueIsEmpty() {
 			p.currentValue.WriteString(p.lineSeparator)
@@ -133,8 +122,7 @@ func (p *Parser) submitCurrentKeyValue() {
 			if !isKnownKey(key) {
 				p.instrumentationResultBundle[key] = value
 			} else {
-				// TODO: implement it
-				// handleTestRunFailed(value)
+				p.handleTestRunFailed(value)
 			}
 		} else {
 			currentTestResult := p.getCurrentTestResult()
@@ -156,8 +144,7 @@ func (p *Parser) submitCurrentKeyValue() {
 					currentTestResult.NumTests = numTests
 				}
 			} else if key == keyError {
-				// TODO: implement it
-				// handleTestRunFailed(value)
+				p.handleTestRunFailed(value)
 			}
 		}
 	}
@@ -184,6 +171,31 @@ func (p *Parser) parseStatusCode(line string) {
 	p.clearCurrentTestInfo()
 }
 
+// process a instrumentation run failure
+func (p *Parser) handleTestRunFailed(errorMessage string) {
+	var message string
+
+	if len(errorMessage) > 0 {
+		message = errorMessage
+	} else {
+		message = "unknown error"
+	}
+
+	if p.lastTestResult != nil &&
+		p.lastTestResult.isComplete() &&
+		p.lastTestResult.Code == statusStart {
+
+		fmt.Println("test failed " + p.lastTestResult.TestName + message)
+	}
+
+	if !p.testStartReported {
+		fmt.Println("test run started: 0")
+	}
+
+	fmt.Println("test run failed: " + message)
+	fmt.Println("test run ended")
+}
+
 // reports a test result to the test run listener. Must be called when a individual test
 // result has been fully parsed.
 func (p *Parser) reportResult(result *TestResult) {
@@ -195,6 +207,8 @@ func (p *Parser) reportResult(result *TestResult) {
 			),
 		)
 	}
+
+	p.reportTestRunStarted(result)
 
 	switch result.Code {
 	case statusStart:
@@ -226,6 +240,30 @@ func (p *Parser) reportResult(result *TestResult) {
 	}
 }
 
+// reports the start of a test run, and the total test count, if it has not been previously
+// reported
+func (p *Parser) reportTestRunStarted(result *TestResult) {
+	if !p.testStartReported && result.NumTests != -1 {
+		fmt.Println("test run started " + result.TestName)
+
+		p.testsExpected = result.NumTests
+		p.testStartReported = true
+	}
+}
+
+// parses the key from the current line
+// expects format of "key=value"
+func (p *Parser) parseKey(line string, keyStartPosition int) {
+	keyEndPosition := strings.Index(line, "=")
+
+	if keyEndPosition > -1 {
+		p.currentKey = strings.TrimSpace(line[keyStartPosition:keyEndPosition])
+
+		p.currentValue = *bytes.NewBufferString("")
+		p.currentValue.WriteString(line[keyEndPosition+1:])
+	}
+}
+
 // clear current test and save it to last test
 func (p *Parser) clearCurrentTestInfo() {
 	p.lastTestResult = p.currentTestResult
@@ -237,7 +275,7 @@ func (p *Parser) currentKeyIsEmpty() bool   { return len(p.currentKey) > 0 }
 
 func (p *Parser) getCurrentTestResult() *TestResult {
 	if p.currentTestResult == nil {
-		p.currentTestResult = &newTestResult()
+		p.currentTestResult = newTestResult()
 	}
 
 	return p.currentTestResult

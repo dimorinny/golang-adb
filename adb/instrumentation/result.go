@@ -8,8 +8,8 @@ type TestResult struct {
 	TestStackTrace string
 }
 
-func newTestResult() TestResult {
-	return TestResult{
+func newTestResult() *TestResult {
+	return &TestResult{
 		Code:           -1,
 		NumTests:       0,
 		TestName:       "",

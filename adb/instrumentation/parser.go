@@ -59,8 +59,8 @@ func NewParser(lineSeparator string) *Parser {
 func (p *Parser) Process(output <-chan string) <-chan TestResult {
 	go func() {
 		for line := range output {
-			fmt.Println("Start processing line:")
-			fmt.Println(line)
+			//fmt.Println("Start processing line:")
+			//fmt.Println(line)
 			p.processLine(line)
 		}
 
@@ -94,21 +94,10 @@ func (p *Parser) processLine(line string) {
 	} else if strings.HasPrefix(line, prefixStatusFailed) || strings.HasPrefix(line, prefixCode) {
 		p.submitCurrentKeyValue()
 		p.inInstrumentationResultKey = false
-		//	mTestRunFinished = true;
-	} else if strings.HasPrefix(line, prefixTimeReport) {
-		// TODO: parse time
-	} else {
-		if p.currentValueIsEmpty() {
-			p.currentValue.WriteString(p.lineSeparator)
-			p.currentValue.WriteString(line)
-		} else {
-			fmt.Println(
-				fmt.Sprintf(
-					"unrecognized line %s",
-					line,
-				),
-			)
-		}
+		p.testRunFinished = true
+	} else if !p.currentValueIsEmpty() {
+		p.currentValue.WriteString(p.lineSeparator)
+		p.currentValue.WriteString(line)
 	}
 }
 
@@ -145,8 +134,16 @@ func (p *Parser) submitCurrentKeyValue() {
 				}
 			} else if key == keyError {
 				p.handleTestRunFailed(value)
+			} else if key == keyStack {
+				currentTestResult.TestStackTrace = value
 			}
+
+			//spew.Dump(*currentTestResult)
+			//spew.Dump(*p.currentTestResult)
 		}
+
+		p.currentKey = ""
+		p.currentValue = *bytes.NewBufferString("")
 	}
 }
 
@@ -155,16 +152,16 @@ func (p *Parser) parseStatusCode(line string) {
 	value := line[len(prefixStatusCode):]
 	currentTestResult := p.getCurrentTestResult()
 
-	numTests, err := strconv.Atoi(value)
+	code, err := strconv.Atoi(value)
 	if err != nil {
 		fmt.Println(
 			fmt.Sprintf(
 				"unexpected integer number of tests, received: %d",
-				numTests,
+				code,
 			),
 		)
 	} else {
-		currentTestResult.NumTests = numTests
+		currentTestResult.Code = code
 	}
 
 	p.reportResult(p.currentTestResult)
@@ -193,19 +190,14 @@ func (p *Parser) handleTestRunFailed(errorMessage string) {
 	}
 
 	fmt.Println("test run failed: " + message)
-	fmt.Println("test run ended")
 }
 
 // reports a test result to the test run listener. Must be called when a individual test
 // result has been fully parsed.
 func (p *Parser) reportResult(result *TestResult) {
 	if !result.isComplete() {
-		fmt.Println(
-			fmt.Sprintf(
-				"invalid instrumentation status bundle: %s",
-				*result,
-			),
-		)
+		fmt.Println("invalid instrumentation status bundle")
+		//spew.Dump(*result)
 	}
 
 	p.reportTestRunStarted(result)
@@ -261,6 +253,9 @@ func (p *Parser) parseKey(line string, keyStartPosition int) {
 
 		p.currentValue = *bytes.NewBufferString("")
 		p.currentValue.WriteString(line[keyEndPosition+1:])
+
+		//fmt.Println("key: " + p.currentKey)
+		//fmt.Println("value: " + p.currentValue.String())
 	}
 }
 
@@ -270,8 +265,8 @@ func (p *Parser) clearCurrentTestInfo() {
 	p.currentTestResult = nil
 }
 
-func (p *Parser) currentValueIsEmpty() bool { return len(p.currentValue.String()) > 0 }
-func (p *Parser) currentKeyIsEmpty() bool   { return len(p.currentKey) > 0 }
+func (p *Parser) currentValueIsEmpty() bool { return len(p.currentValue.String()) == 0 }
+func (p *Parser) currentKeyIsEmpty() bool   { return len(p.currentKey) == 0 }
 
 func (p *Parser) getCurrentTestResult() *TestResult {
 	if p.currentTestResult == nil {

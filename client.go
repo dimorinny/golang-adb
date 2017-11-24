@@ -1,6 +1,9 @@
 package adbaster
 
-import "github.com/dimorinny/adbaster/model"
+import (
+	"github.com/dimorinny/adbaster/adb/instrumentation"
+	"github.com/dimorinny/adbaster/model"
+)
 
 type Client interface {
 	Devices() ([]model.DeviceIdentifier, error)
@@ -8,5 +11,9 @@ type Client interface {
 	Push(device model.DeviceIdentifier, from, to string) error
 	Pull(device model.DeviceIdentifier, from, to string) error
 	Install(device model.DeviceIdentifier, from string) error
-	RunInstrumentationTests(device model.DeviceIdentifier, params model.InstrumentationParams) (<-chan string, error)
+	RunInstrumentationTests(device model.DeviceIdentifier, params model.InstrumentationParams) (
+		<-chan instrumentation.Event,
+		<-chan string,
+		error,
+	)
 }

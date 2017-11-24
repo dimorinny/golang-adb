@@ -20,12 +20,4 @@ type (
 		TestPackage, Runner string
 		Arguments           InstrumentationArguments
 	}
-
-	InstrumentationResult struct {
-		Status  string
-		Running int
-		Passed  int
-		Failure int
-		Output  string
-	}
 )

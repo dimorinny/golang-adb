@@ -12,14 +12,16 @@ import (
 type Parser struct {
 	lineSeparator string
 
-	currentTestResult,
-	lastTestResult *TestResult
+	currentTestRun,
+	latestTestRun *TestRun
 
 	currentKey   string
 	currentValue bytes.Buffer
 
 	// true if start of test has already been reported to listener
 	testStartReported bool
+	// true if fail of test run has already been reported to listener
+	testFailedReported bool
 	// true if the parser is parsing a line beginning with "INSTRUMENTATION_RESULT"
 	inInstrumentationResultKey bool
 	// true if the completion of the test run has been detected
@@ -34,7 +36,10 @@ type Parser struct {
 	// the number of tests expected to run
 	testsExpected int
 
-	result chan TestResult
+	// stream for handling instrumentation results (like starting, passing, failing)
+	resultStream chan Event
+	// stream for handling original instrumentation output (for debugging)
+	instrumentationOutputStream chan string
 }
 
 func NewParser(lineSeparator string) *Parser {
@@ -42,32 +47,39 @@ func NewParser(lineSeparator string) *Parser {
 		lineSeparator: lineSeparator,
 
 		testStartReported:          false,
+		testFailedReported:         false,
 		inInstrumentationResultKey: false,
 		testRunFinished:            false,
 
-		currentTestResult: nil,
-		lastTestResult:    nil,
+		currentTestRun: nil,
+		latestTestRun:  nil,
 
 		numTestsRun:   0,
 		testsExpected: 0,
 
-		result: make(chan TestResult),
+		resultStream:                make(chan Event, 1000),
+		instrumentationOutputStream: make(chan string, 1000),
 	}
 }
 
 // processes the instrumentation test output from channel
-func (p *Parser) Process(output <-chan string) <-chan TestResult {
+func (p *Parser) Process(output <-chan string) (<-chan Event, <-chan string) {
 	go func() {
 		for line := range output {
-			//fmt.Println("Start processing line:")
-			//fmt.Println(line)
+			p.instrumentationOutputStream <- line
+
 			p.processLine(line)
 		}
 
-		close(p.result)
+		if !p.testFailedReported {
+			p.resultStream <- TestsRunFinishedEvent{}
+		}
+
+		close(p.instrumentationOutputStream)
+		close(p.resultStream)
 	}()
 
-	return p.result
+	return p.resultStream, p.instrumentationOutputStream
 }
 
 // parse an individual instrumentation output line
@@ -114,12 +126,12 @@ func (p *Parser) submitCurrentKeyValue() {
 				p.handleTestRunFailed(value)
 			}
 		} else {
-			currentTestResult := p.getCurrentTestResult()
+			currentTestRun := p.getCurrentTestRun()
 
 			if key == keyClass {
-				currentTestResult.TestClass = strings.TrimSpace(value)
+				currentTestRun.TestClass = strings.TrimSpace(value)
 			} else if key == keyTest {
-				currentTestResult.TestName = strings.TrimSpace(value)
+				currentTestRun.TestName = strings.TrimSpace(value)
 			} else if key == keyNumTests {
 				numTests, err := strconv.Atoi(value)
 				if err != nil {
@@ -130,16 +142,13 @@ func (p *Parser) submitCurrentKeyValue() {
 						),
 					)
 				} else {
-					currentTestResult.NumTests = numTests
+					currentTestRun.NumTests = numTests
 				}
 			} else if key == keyError {
 				p.handleTestRunFailed(value)
 			} else if key == keyStack {
-				currentTestResult.TestStackTrace = value
+				currentTestRun.TestStackTrace = value
 			}
-
-			//spew.Dump(*currentTestResult)
-			//spew.Dump(*p.currentTestResult)
 		}
 
 		p.currentKey = ""
@@ -150,7 +159,7 @@ func (p *Parser) submitCurrentKeyValue() {
 // parses out a status code result
 func (p *Parser) parseStatusCode(line string) {
 	value := line[len(prefixStatusCode):]
-	currentTestResult := p.getCurrentTestResult()
+	currentTestRun := p.getCurrentTestRun()
 
 	code, err := strconv.Atoi(value)
 	if err != nil {
@@ -161,10 +170,10 @@ func (p *Parser) parseStatusCode(line string) {
 			),
 		)
 	} else {
-		currentTestResult.Code = code
+		currentTestRun.Code = code
 	}
 
-	p.reportResult(p.currentTestResult)
+	p.reportResult(p.currentTestRun)
 	p.clearCurrentTestInfo()
 }
 
@@ -178,47 +187,63 @@ func (p *Parser) handleTestRunFailed(errorMessage string) {
 		message = "unknown error"
 	}
 
-	if p.lastTestResult != nil &&
-		p.lastTestResult.isComplete() &&
-		p.lastTestResult.Code == statusStart {
+	if p.latestTestRun != nil && p.latestTestRun.isComplete() && p.latestTestRun.Code == statusStart {
 
-		fmt.Println("test failed " + p.lastTestResult.TestName + message)
+		p.resultStream <- TestFailedEvent{
+			Run: TestRun{
+				Code:           statusFailure,
+				NumTests:       p.latestTestRun.NumTests,
+				TestName:       p.latestTestRun.TestName,
+				TestClass:      p.latestTestRun.TestClass,
+				TestStackTrace: message,
+			},
+		}
 	}
 
 	if !p.testStartReported {
-		fmt.Println("test run started: 0")
+		p.resultStream <- TestsRunStartedEvent{
+			NumberOfTests: 0,
+		}
 	}
 
-	fmt.Println("test run failed: " + message)
+	p.resultStream <- TestsRunFailedEvent{
+		Message: message,
+	}
+
+	p.testFailedReported = true
 }
 
 // reports a test result to the test run listener. Must be called when a individual test
 // result has been fully parsed.
-func (p *Parser) reportResult(result *TestResult) {
+func (p *Parser) reportResult(result *TestRun) {
 	if !result.isComplete() {
 		fmt.Println("invalid instrumentation status bundle")
-		//spew.Dump(*result)
 	}
 
 	p.reportTestRunStarted(result)
 
 	switch result.Code {
 	case statusStart:
-		// TODO: handle testStarted
-		fmt.Println("test started " + result.TestName)
+		p.resultStream <- TestStartedEvent{
+			Run: *result,
+		}
 
 	case statusFailure:
-		// TODO: testFailed testEnded
-		fmt.Println("test failed " + result.TestName + result.getTrace())
+		p.resultStream <- TestFailedEvent{
+			Run: *result,
+		}
 		p.numTestsRun++
 
 	case statusError:
-		// TODO: testFailed testEnded
-		fmt.Println("test error " + result.TestName + result.getTrace())
+		p.resultStream <- TestFailedEvent{
+			Run: *result,
+		}
 		p.numTestsRun++
 
 	case statusOk:
-		fmt.Println("test passed " + result.TestName)
+		p.resultStream <- TestPassedEvent{
+			Run: *result,
+		}
 		p.numTestsRun++
 
 	default:
@@ -234,9 +259,12 @@ func (p *Parser) reportResult(result *TestResult) {
 
 // reports the start of a test run, and the total test count, if it has not been previously
 // reported
-func (p *Parser) reportTestRunStarted(result *TestResult) {
+func (p *Parser) reportTestRunStarted(result *TestRun) {
 	if !p.testStartReported && result.NumTests != -1 {
-		fmt.Println("test run started " + result.TestName)
+
+		p.resultStream <- TestsRunStartedEvent{
+			NumberOfTests: result.NumTests,
+		}
 
 		p.testsExpected = result.NumTests
 		p.testStartReported = true
@@ -253,25 +281,22 @@ func (p *Parser) parseKey(line string, keyStartPosition int) {
 
 		p.currentValue = *bytes.NewBufferString("")
 		p.currentValue.WriteString(line[keyEndPosition+1:])
-
-		//fmt.Println("key: " + p.currentKey)
-		//fmt.Println("value: " + p.currentValue.String())
 	}
 }
 
 // clear current test and save it to last test
 func (p *Parser) clearCurrentTestInfo() {
-	p.lastTestResult = p.currentTestResult
-	p.currentTestResult = nil
+	p.latestTestRun = p.currentTestRun
+	p.currentTestRun = nil
 }
 
 func (p *Parser) currentValueIsEmpty() bool { return len(p.currentValue.String()) == 0 }
 func (p *Parser) currentKeyIsEmpty() bool   { return len(p.currentKey) == 0 }
 
-func (p *Parser) getCurrentTestResult() *TestResult {
-	if p.currentTestResult == nil {
-		p.currentTestResult = newTestResult()
+func (p *Parser) getCurrentTestRun() *TestRun {
+	if p.currentTestRun == nil {
+		p.currentTestRun = newTestRun()
 	}
 
-	return p.currentTestResult
+	return p.currentTestRun
 }

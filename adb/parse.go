@@ -43,8 +43,3 @@ func newDeviceFromOutput(output, lineSeparator string) *model.Device {
 		BatteryLevel: util.GetIntWithDefault(items, "status.battery.level_raw", -1),
 	}
 }
-
-func newInstrumentationResultFromOutput(output string) *model.InstrumentationResult {
-	result := model.InstrumentationResult{}
-	return &result
-}

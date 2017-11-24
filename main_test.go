@@ -3,8 +3,9 @@ package adbaster
 import (
 	"log"
 	"testing"
-	"time"
 
+	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/dimorinny/adbaster/adb"
 	"github.com/dimorinny/adbaster/model"
 )
@@ -19,7 +20,7 @@ func TestMain1(t *testing.T) {
 }
 
 func runTests(client Client, device model.DeviceIdentifier) {
-	_, err := client.RunInstrumentationTests(
+	eventStream, instrumentationOutput, err := client.RunInstrumentationTests(
 		device,
 		model.InstrumentationParams{
 			TestPackage: "com.avito.android.dev.test",
@@ -41,7 +42,13 @@ func runTests(client Client, device model.DeviceIdentifier) {
 		log.Fatal(err)
 	}
 
-	time.Sleep(30 * time.Second)
+	for line := range instrumentationOutput {
+		fmt.Println(line)
+	}
+
+	for event := range eventStream {
+		spew.Dump(event)
+	}
 }
 
 func createClient() Client {

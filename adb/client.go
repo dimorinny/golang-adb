@@ -127,9 +127,9 @@ func (c *Client) Install(device model.DeviceIdentifier, from string) error {
 func (c *Client) RunInstrumentationTests(
 	device model.DeviceIdentifier,
 	params model.InstrumentationParams,
-) (<-chan string, error) {
+) (<-chan instrumentation.Event, <-chan string, error) {
 	if params.TestPackage == "" || params.Runner == "" {
-		return nil, errors.New(
+		return nil, nil, errors.New(
 			"test package and runner params is required in RunInstrumentationTests method",
 		)
 	}
@@ -166,12 +166,12 @@ func (c *Client) RunInstrumentationTests(
 
 	output, err := c.executeShellStreamCommand(device, arguments...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	c.instrumentationParser.Process(output)
+	eventStream, instrumentationOutputStream := c.instrumentationParser.Process(output)
 
-	return nil, nil
+	return eventStream, instrumentationOutputStream, nil
 }
 
 func (c *Client) printResponseForCommand(command, response string) {

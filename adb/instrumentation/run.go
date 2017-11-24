@@ -1,6 +1,6 @@
 package instrumentation
 
-type TestResult struct {
+type TestRun struct {
 	Code     int
 	NumTests int
 	TestName,
@@ -8,8 +8,8 @@ type TestResult struct {
 	TestStackTrace string
 }
 
-func newTestResult() *TestResult {
-	return &TestResult{
+func newTestRun() *TestRun {
+	return &TestRun{
 		Code:           -1,
 		NumTests:       0,
 		TestName:       "",
@@ -18,12 +18,12 @@ func newTestResult() *TestResult {
 	}
 }
 
-func (r *TestResult) isComplete() bool {
+func (r *TestRun) isComplete() bool {
 	return r.Code != -1 && len(r.TestName) > 0 && len(r.TestClass) > 0
 }
 
 // returns the stack trace of the current failed test, from the provided testInfo
-func (r *TestResult) getTrace() string {
+func (r *TestRun) getTrace() string {
 	if len(r.TestStackTrace) > 0 {
 		return r.TestStackTrace
 	} else {

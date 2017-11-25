@@ -56,6 +56,12 @@ func (p *Parser) Process(output <-chan string) (<-chan Event, <-chan string) {
 		}
 
 		if !p.testFailedReported {
+			if !p.testStartReported {
+				p.resultStream <- TestsRunStartedEvent{
+					NumberOfTests: 0,
+				}
+			}
+
 			p.resultStream <- TestsRunFinishedEvent{}
 		}
 

@@ -11,6 +11,10 @@ type Client interface {
 	Push(device model.DeviceIdentifier, from, to string) error
 	Pull(device model.DeviceIdentifier, from, to string) error
 	Install(device model.DeviceIdentifier, from string) error
+	Logcat(device model.DeviceIdentifier) (
+		<-chan string,
+		error,
+	)
 	RunInstrumentationTests(device model.DeviceIdentifier, params model.InstrumentationParams) (
 		<-chan instrumentation.Event,
 		<-chan string,

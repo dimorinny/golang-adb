@@ -15,9 +15,21 @@ func TestMain1(t *testing.T) {
 	client := createClient()
 	device := getFirstConnectedDevice(client)
 
+	//listenLogcat(client, device)
 	installApplications(client, device, "avito.apk", "avito-test.apk")
 
 	runTests(client, device)
+}
+
+func listenLogcat(client Client, device model.DeviceIdentifier) {
+	logcatStream, err := client.Logcat(device)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for line := range logcatStream {
+		fmt.Println(line)
+	}
 }
 
 func runTests(client Client, device model.DeviceIdentifier) {

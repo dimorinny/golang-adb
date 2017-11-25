@@ -109,19 +109,19 @@ func TestSecondTestCrashDetectedAfterFirstPassedTestRun(t *testing.T) {
 			},
 			TestStartedEvent{
 				Run: TestRun{
-					Code: 1,
-					NumTests: 2,
-					TestName: "test1",
-					TestClass: "com.example.test.TestClass",
+					Code:           1,
+					NumTests:       2,
+					TestName:       "test1",
+					TestClass:      "com.example.test.TestClass",
 					TestStackTrace: "",
 				},
 			},
 			TestPassedEvent{
 				Run: TestRun{
-					Code: 0,
-					NumTests: 2,
-					TestName: "test1",
-					TestClass: "com.example.test.TestClass",
+					Code:           0,
+					NumTests:       2,
+					TestName:       "test1",
+					TestClass:      "com.example.test.TestClass",
 					TestStackTrace: "",
 				},
 			},

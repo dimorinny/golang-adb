@@ -174,6 +174,15 @@ func (c *Client) RunInstrumentationTests(
 	return eventStream, instrumentationOutputStream, nil
 }
 
+func (c *Client) Logcat(device model.DeviceIdentifier) (<-chan string, error) {
+	outputStream, err := c.executeDeviceStreamCommand(device, "logcat")
+	if err != nil {
+		return nil, err
+	}
+
+	return outputStream, nil
+}
+
 func (c *Client) printResponseForCommand(command, response string) {
 	fmt.Println(fmt.Sprintf("Output for command - %s:", command))
 	fmt.Println(response)

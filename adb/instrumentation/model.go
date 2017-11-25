@@ -31,6 +31,7 @@ var (
 // output statuses
 const (
 	statusFailure = -2
+	statusIgnored = -3
 	statusStart   = 1
 	statusError   = -1
 	statusOk      = 0
@@ -45,8 +46,3 @@ const (
 	prefixResult       = "INSTRUMENTATION_RESULT: "
 	prefixTimeReport   = "Time: "
 )
-
-func isKnownKey(key string) bool {
-	_, ok := knownKeys[key]
-	return ok
-}

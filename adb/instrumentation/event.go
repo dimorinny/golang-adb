@@ -13,4 +13,5 @@ type (
 	TestStartedEvent struct{ Run TestRun }
 	TestPassedEvent  struct{ Run TestRun }
 	TestFailedEvent  struct{ Run TestRun }
+	TestIgnoredEvent struct{ Run TestRun }
 )

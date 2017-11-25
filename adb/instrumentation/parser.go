@@ -9,13 +9,19 @@ import (
 	"strings"
 )
 
+// parses the raw output mode results of an instrumentation test run from shell and informs a caller
 type Parser struct {
+	// line separator for parsing output line by line
 	lineSeparator string
 
+	// currently being parsed test run
 	currentTestRun,
+	// last parsed test run
 	latestTestRun *TestRun
 
+	// stores the current key portion of the status key-value being parsed
 	currentKey   string
+	// stores the current value portion of the status key-value being parsed
 	currentValue bytes.Buffer
 
 	// true if start of test has already been reported to listener
@@ -216,6 +222,11 @@ func (p *Parser) reportResult(result *TestRun) {
 			Run: *result,
 		}
 
+	case statusIgnored:
+		p.resultStream <- TestIgnoredEvent{
+			Run: *result,
+		}
+
 	case statusFailure:
 		p.resultStream <- TestFailedEvent{
 			Run: *result,
@@ -289,6 +300,7 @@ func (p *Parser) getCurrentTestRun() *TestRun {
 	return p.currentTestRun
 }
 
+// clear parser state for further running
 func (p *Parser) prepareParserStateForRun() {
 	p.currentTestRun = nil
 	p.latestTestRun = nil

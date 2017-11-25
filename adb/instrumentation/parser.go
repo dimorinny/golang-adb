@@ -27,10 +27,6 @@ type Parser struct {
 	// true if the completion of the test run has been detected
 	testRunFinished bool
 
-	// stores key-value pairs under INSTRUMENTATION_RESULT header, these are printed at the
-	// end of a test run, if applicable
-	instrumentationResultBundle map[string]string
-
 	// the number of tests currently run
 	numTestsRun,
 	// the number of tests expected to run
@@ -45,25 +41,13 @@ type Parser struct {
 func NewParser(lineSeparator string) *Parser {
 	return &Parser{
 		lineSeparator: lineSeparator,
-
-		testStartReported:          false,
-		testFailedReported:         false,
-		inInstrumentationResultKey: false,
-		testRunFinished:            false,
-
-		currentTestRun: nil,
-		latestTestRun:  nil,
-
-		numTestsRun:   0,
-		testsExpected: 0,
-
-		resultStream:                make(chan Event, 1000),
-		instrumentationOutputStream: make(chan string, 1000),
 	}
 }
 
 // processes the instrumentation test output from channel
 func (p *Parser) Process(output <-chan string) (<-chan Event, <-chan string) {
+	p.prepareParserStateForRun()
+
 	go func() {
 		for line := range output {
 			p.instrumentationOutputStream <- line
@@ -120,9 +104,7 @@ func (p *Parser) submitCurrentKeyValue() {
 		value := p.currentValue.String()
 
 		if p.inInstrumentationResultKey {
-			if !isKnownKey(key) {
-				p.instrumentationResultBundle[key] = value
-			} else {
+			if key == keyShortMsg {
 				p.handleTestRunFailed(value)
 			}
 		} else {
@@ -299,4 +281,23 @@ func (p *Parser) getCurrentTestRun() *TestRun {
 	}
 
 	return p.currentTestRun
+}
+
+func (p *Parser) prepareParserStateForRun() {
+	p.currentTestRun = nil
+	p.latestTestRun = nil
+
+	p.currentKey = ""
+	p.currentValue = *bytes.NewBufferString("")
+
+	p.testStartReported = false
+	p.testFailedReported = false
+	p.inInstrumentationResultKey = false
+	p.testRunFinished = false
+
+	p.numTestsRun = 0
+	p.testsExpected = 0
+
+	p.resultStream = make(chan Event, 1000)
+	p.instrumentationOutputStream = make(chan string, 1000)
 }

@@ -20,7 +20,7 @@ type Parser struct {
 	latestTestRun *TestRun
 
 	// stores the current key portion of the status key-value being parsed
-	currentKey   string
+	currentKey string
 	// stores the current value portion of the status key-value being parsed
 	currentValue bytes.Buffer
 

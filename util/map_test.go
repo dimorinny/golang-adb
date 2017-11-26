@@ -2,6 +2,7 @@ package util
 
 import (
 	"github.com/stretchr/testify/assert"
+	"sort"
 	"testing"
 )
 
@@ -12,10 +13,16 @@ func TestJoinMapWithData(t *testing.T) {
 		"key3": "value3",
 	}
 
+	sortedExpected := []string{"-e key1 value1", "-e key2 value2", "-e key3 value3"}
+	sort.Strings(sortedExpected)
+
+	sortedResult := Join("-e %s %s", data)
+	sort.Strings(sortedResult)
+
 	assert.Equal(
 		t,
-		[]string{"-e key1 value1", "-e key2 value2", "-e key3 value3"},
-		Join("-e %s %s", data),
+		sortedExpected,
+		sortedResult,
 	)
 }
 

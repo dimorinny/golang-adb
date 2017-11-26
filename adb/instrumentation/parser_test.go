@@ -125,7 +125,6 @@ OK (2 tests)
 
 INSTRUMENTATION_CODE: -1`
 
-	// TODO: test this case
 	passInvalidPackageRun = `INSTRUMENTATION_STATUS: id=ActivityManagerService
 invalid instrumentation status bundle
 INSTRUMENTATION_STATUS: Error=Unable to find instrumentation info for: ComponentInfo{/tmp/go-build506757578/command-line-arguments/_obj/exe/main/com.avito.android.runner.AvitoInstrumentTestRunner}
@@ -374,6 +373,26 @@ func TestTwoTestsPassedEventsDetected(t *testing.T) {
 				},
 			},
 			TestsRunFinishedEvent{},
+		},
+		events,
+	)
+}
+
+func TestInvalidPackageErrorDetected(t *testing.T) {
+	events := startInstrumentationOutputParsing(
+		NewParser(parserLineSeparator),
+		passInvalidPackageRun,
+	)
+
+	assert.Equal(
+		t,
+		[]Event{
+			TestsRunStartedEvent{
+				NumberOfTests: 0,
+			},
+			TestsRunFailedEvent{
+				Message: "Unable to find instrumentation info for: ComponentInfo{/tmp/go-build506757578/command-line-arguments/_obj/exe/main/com.avito.android.runner.AvitoInstrumentTestRunner}",
+			},
 		},
 		events,
 	)

@@ -58,7 +58,9 @@ func (p *Parser) Process(output <-chan string) (<-chan Event, <-chan string) {
 		for line := range output {
 			p.instrumentationOutputStream <- line
 
-			p.processLine(line)
+			if !p.testFailedReported {
+				p.processLine(line)
+			}
 		}
 
 		if !p.testFailedReported {
@@ -212,6 +214,7 @@ func (p *Parser) handleTestRunFailed(errorMessage string) {
 func (p *Parser) reportResult(result *TestRun) {
 	if !result.isComplete() {
 		fmt.Println("invalid instrumentation status bundle")
+		return
 	}
 
 	p.reportTestRunStarted(result)

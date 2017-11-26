@@ -11,6 +11,7 @@ type Client interface {
 	Push(device model.DeviceIdentifier, from, to string) error
 	Pull(device model.DeviceIdentifier, from, to string) error
 	Install(device model.DeviceIdentifier, from string) error
+	ClearApplicationData(device model.DeviceIdentifier, applicationPackage string) error
 	Logcat(device model.DeviceIdentifier) (
 		<-chan string,
 		error,

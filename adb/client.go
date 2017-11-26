@@ -13,10 +13,6 @@ import (
 	"github.com/dimorinny/adbaster/util"
 )
 
-const (
-	lineSeparator = "\n"
-)
-
 type Client struct {
 	Config         Config
 	PrintResponses bool
@@ -29,7 +25,7 @@ func NewClient(config Config, printResponses bool) *Client {
 		Config:         config,
 		PrintResponses: printResponses,
 
-		instrumentationParser: instrumentation.NewParser(lineSeparator),
+		instrumentationParser: instrumentation.NewParser(config.LineSeparator),
 	}
 }
 
@@ -42,7 +38,7 @@ func (c *Client) Devices() ([]model.DeviceIdentifier, error) {
 		return nil, err
 	}
 
-	return newDevicesIdentifiersFromOutput(response, lineSeparator), nil
+	return newDevicesIdentifiersFromOutput(response, c.Config.LineSeparator), nil
 }
 
 func (c *Client) DeviceInfo(device model.DeviceIdentifier) (*model.Device, error) {
@@ -54,7 +50,7 @@ func (c *Client) DeviceInfo(device model.DeviceIdentifier) (*model.Device, error
 		return nil, err
 	}
 
-	return newDeviceFromOutput(response, lineSeparator), nil
+	return newDeviceFromOutput(response, c.Config.LineSeparator), nil
 }
 
 func (c *Client) Push(device model.DeviceIdentifier, from, to string) error {
@@ -172,6 +168,20 @@ func (c *Client) RunInstrumentationTests(
 	eventStream, instrumentationOutputStream := c.instrumentationParser.Process(output)
 
 	return eventStream, instrumentationOutputStream, nil
+}
+
+func (c *Client) ClearApplicationData(device model.DeviceIdentifier, applicationPackage string) error {
+	output, err := c.executeShellCommand(
+		device,
+		"pm",
+		"clear",
+		applicationPackage,
+	)
+	if err != nil {
+		return err
+	}
+
+	return detectErrorInClearApplicationDataOutput(output)
 }
 
 func (c *Client) Logcat(device model.DeviceIdentifier) (<-chan string, error) {

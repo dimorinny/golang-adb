@@ -1,27 +1,63 @@
-package adbaster
+package main
 
 import (
-	"log"
-	"testing"
-
 	"fmt"
-
 	"github.com/davecgh/go-spew/spew"
+	"github.com/dimorinny/adbaster"
 	"github.com/dimorinny/adbaster/adb"
 	"github.com/dimorinny/adbaster/model"
+	"log"
+	"os"
 )
 
-func TestMain1(t *testing.T) {
+func main() {
+	testPackage := os.Args[1]
+	applicationPackage := os.Args[2]
+	runner := os.Args[3]
+	testClass := os.Args[4]
+
 	client := createClient()
 	device := getFirstConnectedDevice(client)
 
-	//listenLogcat(client, device)
 	installApplications(client, device, "avito.apk", "avito-test.apk")
 
-	runTests(client, device)
+	runTests(
+		client,
+		device,
+		testPackage,
+		applicationPackage,
+		runner,
+		testClass,
+	)
 }
 
-func listenLogcat(client Client, device model.DeviceIdentifier) {
+func createClient() adbaster.Client {
+	config := adb.NewConfig(
+		"adb",
+		"\n",
+	)
+	return adb.NewClient(config, true)
+}
+
+func getFirstConnectedDevice(client adbaster.Client) model.DeviceIdentifier {
+	identifiers, err := client.Devices()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return identifiers[0]
+}
+
+func installApplications(client adbaster.Client, device model.DeviceIdentifier, applications ...string) {
+	for _, application := range applications {
+		err := client.Install(device, application)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
+func listenLogcat(client adbaster.Client, device model.DeviceIdentifier) {
 	logcatStream, err := client.Logcat(device)
 	if err != nil {
 		log.Fatal(err)
@@ -32,12 +68,20 @@ func listenLogcat(client Client, device model.DeviceIdentifier) {
 	}
 }
 
-func runTests(client Client, device model.DeviceIdentifier) {
+func runTests(
+	client adbaster.Client,
+	device model.DeviceIdentifier,
+	testPackage,
+	applicationPackage,
+	runner,
+	testClass string,
+
+) {
 	eventStream, instrumentationOutput, err := client.RunInstrumentationTests(
 		device,
 		model.InstrumentationParams{
-			TestPackage: "com.avito.android.dev.test",
-			Runner:      "com.avito.android.runner.AvitoInstrumentTestRunner",
+			TestPackage: testPackage,
+			Runner:      runner,
 			Arguments: model.InstrumentationArguments{
 				"testType":                            "FIREBASE",
 				"fileStorageHost":                     "erc20.xyz",
@@ -47,7 +91,7 @@ func runTests(client Client, device model.DeviceIdentifier) {
 				"componentTestTakeScreenshots":        "false",
 				"allureReportForInstrumentationTests": "false",
 				"componentTestFlakyDebug":             "false",
-				"class":                               "com.avito.android.module.edit_profile.AvatarEditProfileTest/avatar__photo_picker__click_on_empty_avatar",
+				"class":                               testClass,
 			},
 		},
 	)
@@ -58,31 +102,12 @@ func runTests(client Client, device model.DeviceIdentifier) {
 	for line := range instrumentationOutput {
 		fmt.Println(line)
 	}
-
 	for event := range eventStream {
 		spew.Dump(event)
 	}
-}
 
-func createClient() Client {
-	config := adb.NewConfig("adb")
-	return adb.NewClient(config, true)
-}
-
-func getFirstConnectedDevice(client Client) model.DeviceIdentifier {
-	identifiers, err := client.Devices()
+	err = client.ClearApplicationData(device, applicationPackage)
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	return identifiers[0]
-}
-
-func installApplications(client Client, device model.DeviceIdentifier, applications ...string) {
-	for _, application := range applications {
-		err := client.Install(device, application)
-		if err != nil {
-			log.Fatal(err)
-		}
 	}
 }

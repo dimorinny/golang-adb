@@ -124,6 +124,19 @@ OK (2 tests)
 
 
 INSTRUMENTATION_CODE: -1`
+
+	// TODO: test this case
+	passInvalidPackageRun = `INSTRUMENTATION_STATUS: id=ActivityManagerService
+invalid instrumentation status bundle
+INSTRUMENTATION_STATUS: Error=Unable to find instrumentation info for: ComponentInfo{/tmp/go-build506757578/command-line-arguments/_obj/exe/main/com.avito.android.runner.AvitoInstrumentTestRunner}
+INSTRUMENTATION_STATUS_CODE: -1
+android.util.AndroidException: INSTRUMENTATION_FAILED: /tmp/go-build506757578/command-line-arguments/_obj/exe/main/com.avito.android.runner.AvitoInstrumentTestRunner
+        at com.android.commands.am.Am.runInstrument(Am.java:890)
+        at com.android.commands.am.Am.onRun(Am.java:400)
+        at com.android.internal.os.BaseCommand.run(BaseCommand.java:51)
+        at com.android.commands.am.Am.main(Am.java:121)
+        at com.android.internal.os.RuntimeInit.nativeFinishInit(Native Method)
+        at com.android.internal.os.RuntimeInit.main(RuntimeInit.java:262)`
 )
 
 func startInstrumentationOutputParsing(parser *Parser, output string) []Event {

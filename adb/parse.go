@@ -1,6 +1,8 @@
 package adb
 
 import (
+	"errors"
+	"fmt"
 	"github.com/dimorinny/adbaster/model"
 	"github.com/dimorinny/adbaster/util"
 	"strings"
@@ -42,4 +44,17 @@ func newDeviceFromOutput(output, lineSeparator string) *model.Device {
 		Sdk:          util.GetIntWithDefault(items, "ro.build.version.sdk", -1),
 		BatteryLevel: util.GetIntWithDefault(items, "status.battery.level_raw", -1),
 	}
+}
+
+func detectErrorInClearApplicationDataOutput(output string) error {
+	if strings.TrimSpace(output) != "Success" {
+		return errors.New(
+			fmt.Sprintf(
+				"error during running clear application data with output: %s",
+				output,
+			),
+		)
+	}
+
+	return nil
 }

@@ -1,11 +1,13 @@
 package adb
 
 type Config struct {
-	AdbPath string
+	AdbPath       string
+	LineSeparator string
 }
 
-func NewConfig(adbPath string) Config {
+func NewConfig(adbPath, lineSeparator string) Config {
 	return Config{
-		AdbPath: adbPath,
+		AdbPath:       adbPath,
+		LineSeparator: lineSeparator,
 	}
 }

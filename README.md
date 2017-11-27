@@ -73,7 +73,6 @@ func runTests(
 	testPackage,
 	runner,
 	testClass string,
-
 ) {
 	eventStream, instrumentationOutput, err := client.RunInstrumentationTests(
 		device,

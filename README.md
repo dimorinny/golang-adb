@@ -1,8 +1,8 @@
-## Adbaster
+## Description
 
 Library for communication with Android device through Adb. The main purpose of this library is running Android instrumentation tests and parsing it's results.
 
-### Usage
+## Usage
 
 The main unit of this library is `adbaster.Client` interface, that looks like this:
 

@@ -6,7 +6,7 @@ Library for communication with Android device through Adb. The main purpose of t
 
 The main unit of this library is `adbaster.Client` interface, that looks like this:
 
-```
+```go
 type Client interface {
 	Devices() ([]model.DeviceIdentifier, error)
 	DeviceInfo(device model.DeviceIdentifier) (*model.Device, error)
@@ -28,7 +28,7 @@ type Client interface {
 
 This library has one implementation of this interface, that uses Adb binary. You can create it like this:
 
-```
+```go
 func createClient() adbaster.Client {
 	config := adb.NewConfig(
 		"adb",
@@ -40,7 +40,7 @@ func createClient() adbaster.Client {
 
 After that you can get connected device for further communication. For example, you can get first device like this:
 
-```
+```go
 func getFirstConnectedDevice(client adbaster.Client) model.DeviceIdentifier {
 	identifiers, err := client.Devices()
 	if err != nil {
@@ -53,7 +53,7 @@ func getFirstConnectedDevice(client adbaster.Client) model.DeviceIdentifier {
 
 Now, you can install applications to your device:
 
-```
+```go
 func installApplications(client adbaster.Client, device model.DeviceIdentifier, applications ...string) {
 	for _, application := range applications {
 		err := client.Install(device, application)
@@ -66,7 +66,7 @@ func installApplications(client adbaster.Client, device model.DeviceIdentifier, 
 
 And running instrumentation tests:
 
-```
+```go
 func runTests(
 	client adbaster.Client,
 	device model.DeviceIdentifier,

@@ -99,9 +99,12 @@ func runTests(
 		log.Fatal(err)
 	}
 
+	// getting original instrumentation output
 	for line := range instrumentationOutput {
 		fmt.Println(line)
 	}
+
+	// getting test results
 	for event := range eventStream {
 		spew.Dump(event)
 	}

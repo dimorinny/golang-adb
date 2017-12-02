@@ -47,7 +47,7 @@ func newDeviceFromOutput(output, lineSeparator string) *model.Device {
 }
 
 func detectErrorInClearApplicationDataOutput(output string) error {
-	if strings.TrimSpace(output) != "Success" {
+	if !strings.Contains(strings.TrimSpace(output), "Success") {
 		return errors.New(
 			fmt.Sprintf(
 				"error during running clear application data with output: %s",

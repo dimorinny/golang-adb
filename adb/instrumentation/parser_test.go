@@ -118,7 +118,7 @@ INSTRUMENTATION_STATUS: current=2
 INSTRUMENTATION_STATUS_CODE: 0
 INSTRUMENTATION_RESULT: stream=
 
-Time: 10.073
+Time: 9.073
 
 OK (2 tests)
 
@@ -168,7 +168,9 @@ func TestNoTestsPublishedWhenTestsNotFound(t *testing.T) {
 			TestsRunStartedEvent{
 				NumberOfTests: 0,
 			},
-			TestsRunFinishedEvent{},
+			TestsRunFinishedEvent{
+				Time: 0,
+			},
 		},
 		events,
 	)
@@ -318,7 +320,9 @@ func TestSecondIgnoredTestFoundAfterPassedTest(t *testing.T) {
 					TestStackTrace: "",
 				},
 			},
-			TestsRunFinishedEvent{},
+			TestsRunFinishedEvent{
+				Time: 10.073,
+			},
 		},
 		events,
 	)
@@ -372,7 +376,9 @@ func TestTwoTestsPassedEventsDetected(t *testing.T) {
 					TestStackTrace: "",
 				},
 			},
-			TestsRunFinishedEvent{},
+			TestsRunFinishedEvent{
+				Time: 9.073,
+			},
 		},
 		events,
 	)

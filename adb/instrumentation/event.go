@@ -7,7 +7,7 @@ type (
 	// tests running events
 	TestsRunStartedEvent  struct{ NumberOfTests int }
 	TestsRunFailedEvent   struct{ Message string }
-	TestsRunFinishedEvent struct{}
+	TestsRunFinishedEvent struct{ Time float64 }
 
 	// test running events
 	TestStartedEvent struct{ Run TestRun }

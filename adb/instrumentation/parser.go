@@ -38,6 +38,9 @@ type Parser struct {
 	// the number of tests expected to run
 	testsExpected int
 
+	// the elapsed time of the test run, in milliseconds
+	testsRunTime float64
+
 	// stream for handling instrumentation results (like starting, passing, failing)
 	resultStream chan Event
 	// stream for handling original instrumentation output (for debugging)
@@ -70,7 +73,9 @@ func (p *Parser) Process(output <-chan string) (<-chan Event, <-chan string) {
 				}
 			}
 
-			p.resultStream <- TestsRunFinishedEvent{}
+			p.resultStream <- TestsRunFinishedEvent{
+				Time: p.testsRunTime,
+			}
 		}
 
 		close(p.instrumentationOutputStream)
@@ -105,6 +110,8 @@ func (p *Parser) processLine(line string) {
 		p.submitCurrentKeyValue()
 		p.inInstrumentationResultKey = false
 		p.testRunFinished = true
+	} else if strings.HasPrefix(line, prefixTimeReport) {
+		p.parseTime(line)
 	} else if !p.currentValueIsEmpty() {
 		p.currentValue.WriteString(p.lineSeparator)
 		p.currentValue.WriteString(line)
@@ -284,6 +291,30 @@ func (p *Parser) parseKey(line string, keyStartPosition int) {
 		p.currentValue = *bytes.NewBufferString("")
 		p.currentValue.WriteString(line[keyEndPosition+1:])
 	}
+}
+
+// parse time entry.
+// for example: Time: 10.073
+func (p *Parser) parseTime(line string) {
+	errorMessage := fmt.Sprintf(
+		"invalid time entry: %s",
+		line,
+	)
+
+	if len(line) < len(prefixTimeReport) {
+		fmt.Println(errorMessage)
+		return
+	}
+
+	resultString := line[len(prefixTimeReport):]
+
+	result, err := strconv.ParseFloat(resultString, 64)
+	if err != nil {
+		fmt.Println(errorMessage)
+		return
+	}
+
+	p.testsRunTime = result
 }
 
 // clear current test and save it to last test

@@ -8,9 +8,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/dimorinny/adbaster/adb/instrumentation"
-	"github.com/dimorinny/adbaster/model"
-	"github.com/dimorinny/adbaster/util"
+	"github.com/dimorinny/golang-adb/adb/instrumentation"
+	"github.com/dimorinny/golang-adb/model"
+	"github.com/dimorinny/golang-adb/util"
 )
 
 type Client struct {
@@ -130,7 +130,7 @@ func (c *Client) RunInstrumentationTests(
 		)
 	}
 
-	arguments := []string{}
+	var arguments []string
 	arguments = append(
 		arguments,
 		"am",

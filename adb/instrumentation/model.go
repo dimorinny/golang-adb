@@ -12,22 +12,6 @@ const (
 	keyShortMsg = "shortMsg"
 )
 
-var (
-	knownKeys = map[string]struct{}{
-		keyTest:     {},
-		keyClass:    {},
-		keyStack:    {},
-		keyNumTests: {},
-		keyError:    {},
-		keyShortMsg: {},
-
-		// unused
-		"stream":  {},
-		"id":      {},
-		"current": {},
-	}
-)
-
 // output statuses
 const (
 	statusFailure = -2

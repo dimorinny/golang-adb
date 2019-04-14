@@ -1,8 +1,8 @@
-package adbaster
+package golangadb
 
 import (
-	"github.com/dimorinny/adbaster/adb/instrumentation"
-	"github.com/dimorinny/adbaster/model"
+	"github.com/dimorinny/golang-adb/adb/instrumentation"
+	"github.com/dimorinny/golang-adb/model"
 )
 
 type Client interface {

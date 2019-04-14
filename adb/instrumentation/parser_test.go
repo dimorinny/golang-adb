@@ -141,7 +141,7 @@ android.util.AndroidException: INSTRUMENTATION_FAILED: /tmp/go-build506757578/co
 func startInstrumentationOutputParsing(parser *Parser, output string) []Event {
 	outputStream := make(chan string, 1000)
 
-	result := []Event{}
+	var result []Event
 	eventsStream, _ := parser.Process(outputStream)
 
 	for _, line := range strings.Split(output, parserLineSeparator) {

@@ -1,7 +1,7 @@
 package adb
 
 import (
-	"github.com/dimorinny/adbaster/model"
+	"github.com/dimorinny/golang-adb/model"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

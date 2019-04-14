@@ -3,13 +3,13 @@ package adb
 import (
 	"errors"
 	"fmt"
-	"github.com/dimorinny/adbaster/model"
-	"github.com/dimorinny/adbaster/util"
+	"github.com/dimorinny/golang-adb/model"
+	"github.com/dimorinny/golang-adb/util"
 	"strings"
 )
 
 func newDevicesIdentifiersFromOutput(output, lineSeparator string) []model.DeviceIdentifier {
-	identifiers := []model.DeviceIdentifier{}
+	var identifiers []model.DeviceIdentifier
 
 	for _, item := range strings.Split(output, lineSeparator) {
 		trimmedItem := strings.TrimSpace(item)

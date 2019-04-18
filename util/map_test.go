@@ -29,9 +29,11 @@ func TestJoinMapWithData(t *testing.T) {
 func TestJoinEmptyMap(t *testing.T) {
 	data := map[string]string{}
 
+	var expectedResult []string
+
 	assert.Equal(
 		t,
-		[]string{},
+		expectedResult,
 		Join("-e %s %s", data),
 	)
 }

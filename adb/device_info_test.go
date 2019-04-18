@@ -8,6 +8,7 @@ import (
 
 const (
 	deviceInfoTestLineSeparator = "\n"
+	identifier                  = "identifier"
 
 	successDevice = `[ARGH]: [ARGH]
 [dalvik.vm.heapsize]: [48m]
@@ -42,12 +43,17 @@ const (
 )
 
 func TestDeviceInfoParsed(t *testing.T) {
-	device := newDeviceFromOutput(successDevice, deviceInfoTestLineSeparator)
+	device := newDeviceFromOutput(
+		identifier,
+		successDevice,
+		deviceInfoTestLineSeparator,
+	)
 
 	assert.Equal(
 		t,
 		device,
 		&model.Device{
+			Identifier:   identifier,
 			Arch:         "x86",
 			Timezone:     "America/New_York",
 			Sdk:          19,
@@ -58,12 +64,17 @@ func TestDeviceInfoParsed(t *testing.T) {
 }
 
 func TestDeviceFieldEmptyIfItNotExists(t *testing.T) {
-	deviceWithoutSdk := newDeviceFromOutput(successDeviceWithoutSdk, deviceInfoTestLineSeparator)
+	deviceWithoutSdk := newDeviceFromOutput(
+		identifier,
+		successDeviceWithoutSdk,
+		deviceInfoTestLineSeparator,
+	)
 
 	assert.Equal(
 		t,
 		deviceWithoutSdk,
 		&model.Device{
+			Identifier:   identifier,
 			Arch:         "x86",
 			Timezone:     "America/New_York",
 			Sdk:          -1,
@@ -74,12 +85,17 @@ func TestDeviceFieldEmptyIfItNotExists(t *testing.T) {
 }
 
 func TestDeviceEmptyIfResponseIsEmpty(t *testing.T) {
-	deviceWithoutSdk := newDeviceFromOutput("", deviceInfoTestLineSeparator)
+	deviceWithoutSdk := newDeviceFromOutput(
+		identifier,
+		"",
+		deviceInfoTestLineSeparator,
+	)
 
 	assert.Equal(
 		t,
 		deviceWithoutSdk,
 		&model.Device{
+			Identifier:   identifier,
 			Arch:         "",
 			Timezone:     "",
 			HeapSize:     "",

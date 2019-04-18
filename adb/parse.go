@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/dimorinny/golang-adb/model"
 	"github.com/dimorinny/golang-adb/util"
+	"regexp"
 	"strings"
 )
 
@@ -26,18 +27,23 @@ func newDevicesIdentifiersFromOutput(output, lineSeparator string) []model.Devic
 	return identifiers
 }
 
-func newDeviceFromOutput(output, lineSeparator string) *model.Device {
+func newDeviceFromOutput(identifier model.DeviceIdentifier, output, lineSeparator string) *model.Device {
 	items := map[string]interface{}{}
+
+	clearRegex, _ := regexp.Compile("([][\\s])")
 
 	for _, item := range strings.Split(output, lineSeparator) {
 		splitItem := strings.Split(item, ": ")
 		if len(splitItem) == 2 {
-			key := strings.Trim(splitItem[0], "][")
-			value := strings.Trim(splitItem[1], "][")
+			key := clearRegex.ReplaceAllString(splitItem[0], "")
+			value := clearRegex.ReplaceAllString(splitItem[1], "")
+
 			items[key] = value
 		}
 	}
+
 	return &model.Device{
+		Identifier:   identifier,
 		Arch:         util.GetStringWithDefault(items, "ro.product.cpu.abi", ""),
 		Timezone:     util.GetStringWithDefault(items, "persist.sys.timezone", ""),
 		HeapSize:     util.GetStringWithDefault(items, "dalvik.vm.heapsize", ""),

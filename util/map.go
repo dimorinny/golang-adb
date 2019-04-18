@@ -26,7 +26,7 @@ func GetIntWithDefault(data map[string]interface{}, key string, defaultValue int
 }
 
 func Join(format string, data map[string]string) []string {
-	result := []string{}
+	var result []string
 
 	for key, value := range data {
 		result = append(

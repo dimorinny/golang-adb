@@ -25,7 +25,7 @@ func NewClient(config Config, printResponses bool) *Client {
 		Config:         config,
 		PrintResponses: printResponses,
 
-		instrumentationParser: instrumentation.NewParser(config.LineSeparator),
+		instrumentationParser: instrumentation.NewParser(lineSeparator),
 	}
 }
 
@@ -38,7 +38,7 @@ func (c *Client) Devices() ([]model.DeviceIdentifier, error) {
 		return nil, err
 	}
 
-	return newDevicesIdentifiersFromOutput(response, c.Config.LineSeparator), nil
+	return newDevicesIdentifiersFromOutput(response, lineSeparator), nil
 }
 
 func (c *Client) DeviceInfo(device model.DeviceIdentifier) (*model.Device, error) {
@@ -50,7 +50,7 @@ func (c *Client) DeviceInfo(device model.DeviceIdentifier) (*model.Device, error
 		return nil, err
 	}
 
-	return newDeviceFromOutput(response, c.Config.LineSeparator), nil
+	return newDeviceFromOutput(device, response, lineSeparator), nil
 }
 
 func (c *Client) Push(device model.DeviceIdentifier, from, to string) error {
@@ -93,7 +93,12 @@ func (c *Client) Install(device model.DeviceIdentifier, from string) error {
 	}
 
 	defer func() {
-		c.executeShellCommand(device, "rm", to)
+		output, err := c.executeShellCommand(device, "rm", to)
+		if err != nil {
+			fmt.Println(
+				fmt.Sprintf("Failed to remove application from device. Output: %s", output),
+			)
+		}
 	}()
 
 	response, err := c.executeShellCommand(

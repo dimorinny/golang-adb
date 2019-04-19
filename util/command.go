@@ -2,11 +2,13 @@ package util
 
 import (
 	"bufio"
+	"errors"
+	"fmt"
 	"io"
 	"os/exec"
 )
 
-func ExecCommandWithStreamOutput(command string, arguments ...string) (<-chan string, error) {
+func ExecuteCommandWithStreamOutput(command string, arguments ...string) (<-chan string, error) {
 	cmd := exec.Command(
 		command,
 		arguments...,
@@ -35,4 +37,23 @@ func ExecCommandWithStreamOutput(command string, arguments ...string) (<-chan st
 	}()
 
 	return result, nil
+}
+
+func ExecuteCommand(command string, arguments ...string) (string, error) {
+	output, err := exec.Command(
+		command,
+		arguments...,
+	).Output()
+
+	if err != nil {
+		return "", errors.New(
+			fmt.Sprintf(
+				"some error while executing: %v. output: %s",
+				arguments,
+				err,
+			),
+		)
+	}
+
+	return string(output), nil
 }

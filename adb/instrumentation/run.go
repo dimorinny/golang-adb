@@ -8,7 +8,7 @@ type TestRun struct {
 	TestStackTrace string
 }
 
-func newTestRun() *TestRun {
+func newEmptyTestRun() *TestRun {
 	return &TestRun{
 		Code:           -1,
 		NumTests:       0,

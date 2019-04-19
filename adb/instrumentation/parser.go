@@ -328,7 +328,7 @@ func (p *Parser) currentKeyIsEmpty() bool   { return len(p.currentKey) == 0 }
 
 func (p *Parser) getCurrentTestRun() *TestRun {
 	if p.currentTestRun == nil {
-		p.currentTestRun = newTestRun()
+		p.currentTestRun = newEmptyTestRun()
 	}
 
 	return p.currentTestRun
